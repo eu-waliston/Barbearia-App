@@ -7,11 +7,16 @@ class Appointment {
         this.collection = db.collection('appointments');
     }
 
-    // Validação dos dados do agendamento
+    // Versão SIMPLIFICADA do validateAppointment para debug
     validateAppointment(appointment) {
         const errors = [];
 
-        // Validações básicas
+        console.log('=== VALIDAÇÃO APPOINTMENT ===');
+        console.log('Dados recebidos:', appointment);
+        console.log('BarberId:', appointment.barberId, 'Tipo:', typeof appointment.barberId);
+        console.log('ServiceId:', appointment.serviceId, 'Tipo:', typeof appointment.serviceId);
+
+        // Validações básicas apenas
         if (!appointment.clientName || appointment.clientName.trim() === '') {
             errors.push('Nome do cliente é obrigatório');
         }
@@ -24,26 +29,27 @@ class Appointment {
             errors.push('Data e hora do agendamento são inválidas');
         }
 
-        // Validação de barbeiro
+        // Validação SIMPLIFICADA - apenas verificar se existe
         if (!appointment.barberId) {
             errors.push('Barbeiro é obrigatório');
-        } else if (appointment.barberId === '[object Object]') {
-            errors.push('ID do barbeiro está em formato inválido');
+        } else if (appointment.barberId === 'undefined' || appointment.barberId === 'null') {
+            errors.push('ID do barbeiro inválido');
         }
 
-        // Validação de serviço
         if (!appointment.serviceId) {
             errors.push('Serviço é obrigatório');
-        } else if (appointment.serviceId === '[object Object]') {
-            errors.push('ID do serviço está em formato inválido');
+        } else if (appointment.serviceId === 'undefined' || appointment.serviceId === 'null') {
+            errors.push('ID do serviço inválido');
         }
 
+        console.log('Erros encontrados:', errors);
         return errors;
     }
 
-    // Cria um novo agendamento
+    // Versão SIMPLIFICADA do create
     async create(appointmentData) {
-        console.log('Dados recebidos no create:', appointmentData);
+        console.log('=== CREATE APPOINTMENT ===');
+        console.log('Dados recebidos para criação:', appointmentData);
 
         // Validação
         const errors = this.validateAppointment(appointmentData);
@@ -51,57 +57,68 @@ class Appointment {
             throw new Error(`Erro de validação: ${errors.join(', ')}`);
         }
 
-        // Converter IDs para ObjectId
-        let barberId, serviceId;
-
         try {
-            // Se o ID for '[object Object]', não podemos converter
-            if (appointmentData.barberId === '[object Object]') {
-                throw new Error('ID do barbeiro inválido');
+            // Tentar criar ObjectIds
+            let barberId, serviceId;
+
+            console.log('Tentando criar ObjectId do barbeiro:', appointmentData.barberId);
+            console.log('Tentando criar ObjectId do serviço:', appointmentData.serviceId);
+
+            try {
+                barberId = new ObjectId(appointmentData.barberId);
+                console.log('ObjectId do barbeiro criado:', barberId);
+            } catch (error) {
+                console.error('Erro ao criar ObjectId do barbeiro:', error);
+                // Se falhar, usar string mesmo
+                barberId = appointmentData.barberId;
+                console.log('Usando string como ID do barbeiro:', barberId);
             }
-            barberId = new ObjectId(appointmentData.barberId);
-        } catch (error) {
-            console.error('Erro ao converter barberId:', error);
-            throw new Error('ID do barbeiro em formato inválido');
-        }
 
-        try {
-            // Se o ID for '[object Object]', não podemos converter
-            if (appointmentData.serviceId === '[object Object]') {
-                throw new Error('ID do serviço inválido');
+            try {
+                serviceId = new ObjectId(appointmentData.serviceId);
+                console.log('ObjectId do serviço criado:', serviceId);
+            } catch (error) {
+                console.error('Erro ao criar ObjectId do serviço:', error);
+                // Se falhar, usar string mesmo
+                serviceId = appointmentData.serviceId;
+                console.log('Usando string como ID do serviço:', serviceId);
             }
-            serviceId = new ObjectId(appointmentData.serviceId);
+
+            // Preparar dados do agendamento
+            const appointment = {
+                clientName: appointmentData.clientName.trim(),
+                clientPhone: appointmentData.clientPhone.trim(),
+                date: new Date(appointmentData.date),
+                barberId: barberId,
+                serviceId: serviceId,
+                barberName: appointmentData.barberName || '',
+                serviceName: appointmentData.serviceName || '',
+                duration: appointmentData.duration || 30,
+                price: appointmentData.price || 0,
+                status: appointmentData.status || 'agendado',
+                notes: appointmentData.notes || '',
+                createdAt: new Date(),
+                updatedAt: new Date()
+            };
+
+            console.log('Appointment pronto para inserção:', appointment);
+
+            // Inserir no banco de dados
+            const result = await this.collection.insertOne(appointment);
+            console.log('Resultado da inserção:', result);
+
+            const createdAppointment = {
+                ...appointment,
+                _id: result.insertedId
+            };
+            console.log('Appointment criado:', createdAppointment);
+
+            return createdAppointment;
+
         } catch (error) {
-            console.error('Erro ao converter serviceId:', error);
-            throw new Error('ID do serviço em formato inválido');
+            console.error('Erro durante a criação do agendamento:', error);
+            throw error;
         }
-
-        // Preparar dados do agendamento
-        const appointment = {
-            clientName: appointmentData.clientName.trim(),
-            clientPhone: appointmentData.clientPhone.trim(),
-            date: new Date(appointmentData.date),
-            barberId: barberId,
-            serviceId: serviceId,
-            barberName: appointmentData.barberName || '',
-            serviceName: appointmentData.serviceName || '',
-            duration: appointmentData.duration || 30,
-            price: appointmentData.price || 0,
-            status: appointmentData.status || 'agendado',
-            notes: appointmentData.notes || '',
-            createdAt: new Date(),
-            updatedAt: new Date()
-        };
-
-        console.log('Appointment para inserção:', appointment);
-
-        // Inserir no banco de dados
-        const result = await this.collection.insertOne(appointment);
-
-        return {
-            ...appointment,
-            _id: result.insertedId
-        };
     }
 
 
