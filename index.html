@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Barbearia Elite - Sistema de Agendamentos</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Barra de título personalizada -->
+    <div class="title-bar">
+        <div class="window-controls">
+            <button id="minimize-btn" class="window-btn">
+                <i class="fas fa-minus"></i>
+            </button>
+            <button id="maximize-btn" class="window-btn">
+                <i class="fas fa-square"></i>
+            </button>
+            <button id="close-btn" class="window-btn close">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fas fa-cut"></i>
+                <h1>Barbearia Elite</h1>
+                <p>Sistema de Agendamentos</p>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" data-view="dashboard">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Agenda</span>
+                </a>
+                <a href="#" class="nav-item" data-view="new-appointment">
+                    <i class="fas fa-plus-circle"></i>
+                    <span>Novo Agendamento</span>
+                </a>
+                <a href="#" class="nav-item" data-view="barbers">
+                    <i class="fas fa-user-tie"></i>
+                    <span>Barbeiros</span>
+                </a>
+                <a href="#" class="nav-item" data-view="services">
+                    <i class="fas fa-concierge-bell"></i>
+                    <span>Serviços</span>
+                </a>
+                <a href="#" class="nav-item" data-view="reports">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Relatórios</span>
+                </a>
+            </nav>
+
+            <div class="current-date">
+                <i class="fas fa-clock"></i>
+                <span id="current-date-time">Carregando...</span>
+            </div>
+        </aside>
+
+        <!-- Conteúdo principal -->
+        <main class="main-content">
+            <!-- Dashboard/Agenda -->
+            <section id="dashboard-view" class="view active">
+                <header class="view-header">
+                    <h2><i class="fas fa-calendar-alt"></i> Agenda do Dia</h2>
+                    <div class="date-selector">
+                        <button id="prev-day" class="date-nav-btn">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <input type="date" id="selected-date" value="">
+                        <button id="next-day" class="date-nav-btn">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                        <button id="today-btn" class="btn-secondary">
+                            <i class="fas fa-calendar-day"></i> Hoje
+                        </button>
+                    </div>
+                </header>
+
+                <div class="schedule-container">
+                    <div class="time-slots">
+                        <!-- Horários serão preenchidos via JavaScript -->
+                    </div>
+                    <div class="appointments-container">
+                        <!-- Compromissos serão renderizados aqui -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Novo Agendamento -->
+            <section id="new-appointment-view" class="view">
+                <header class="view-header">
+                    <h2><i class="fas fa-plus-circle"></i> Novo Agendamento</h2>
+                </header>
+
+                <div class="form-container">
+                    <form id="appointment-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="client-name"><i class="fas fa-user"></i> Nome do Cliente</label>
+                                <input type="text" id="client-name" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="client-phone"><i class="fas fa-phone"></i> Telefone</label>
+                                <input type="tel" id="client-phone" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="appointment-date"><i class="fas fa-calendar"></i> Data</label>
+                                <input type="date" id="appointment-date" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="appointment-time"><i class="fas fa-clock"></i> Hora</label>
+                                <input type="time" id="appointment-time" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="barber"><i class="fas fa-user-tie"></i> Barbeiro</label>
+                                <select id="barber" required>
+                                    <option value="">Selecione um barbeiro</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="service"><i class="fas fa-cut"></i> Serviço</label>
+                                <select id="service" required>
+                                    <option value="">Selecione um serviço</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="notes"><i class="fas fa-sticky-note"></i> Observações</label>
+                            <textarea id="notes" rows="3"></textarea>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn-secondary" id="cancel-form">
+                                <i class="fas fa-times"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-check"></i> Agendar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Barbeiros -->
+            <section id="barbers-view" class="view">
+                <header class="view-header">
+                    <h2><i class="fas fa-user-tie"></i> Barbeiros</h2>
+                    <button class="btn-primary" id="add-barber-btn">
+                        <i class="fas fa-plus"></i> Adicionar Barbeiro
+                    </button>
+                </header>
+
+                <div class="cards-container" id="barbers-container">
+                    <!-- Barbeiros serão carregados aqui -->
+                </div>
+            </section>
+
+            <!-- Serviços -->
+            <section id="services-view" class="view">
+                <header class="view-header">
+                    <h2><i class="fas fa-concierge-bell"></i> Serviços</h2>
+                    <button class="btn-primary" id="add-service-btn">
+                        <i class="fas fa-plus"></i> Adicionar Serviço
+                    </button>
+                </header>
+
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Serviço</th>
+                                <th>Duração</th>
+                                <th>Preço</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="services-table">
+                            <!-- Serviços serão carregados aqui -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- Relatórios -->
+            <section id="reports-view" class="view">
+                <header class="view-header">
+                    <h2><i class="fas fa-chart-bar"></i> Relatórios</h2>
+                    <div class="report-period">
+                        <select id="report-period">
+                            <option value="today">Hoje</option>
+                            <option value="week">Esta Semana</option>
+                            <option value="month">Este Mês</option>
+                            <option value="custom">Personalizado</option>
+                        </select>
+                    </div>
+                </header>
+
+                <div class="reports-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Agendamentos</h3>
+                            <p class="stat-number" id="appointments-count">0</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-money-bill-wave"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Faturamento</h3>
+                            <p class="stat-number" id="revenue-amount">R$ 0,00</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Clientes</h3>
+                            <p class="stat-number" id="clients-count">0</p>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon">
+                            <i class="fas fa-star"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3>Serviço Popular</h3>
+                            <p class="stat-number" id="popular-service">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <canvas id="appointments-chart"></canvas>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal para detalhes do agendamento -->
+    <div class="modal" id="appointment-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Detalhes do Agendamento</h3>
+                <button class="modal-close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body" id="appointment-details">
+                <!-- Detalhes serão carregados aqui -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancel-appointment">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button class="btn-primary" id="complete-appointment">
+                    <i class="fas fa-check"></i> Concluir
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificação -->
+    <div class="notification" id="notification">
+        <div class="notification-content">
+            <i class="fas fa-check-circle"></i>
+            <span id="notification-message"></span>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

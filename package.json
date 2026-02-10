@@ -1,0 +1,28 @@
+{
+  "name": "barbearia-app",
+  "version": "1.0.0",
+  "description": "> Um aplicativo desktop moderno, rápido e estiloso para **agendamento de barbearia**, feito com ❤️ usando **Electron**, **MongoDB**, **JavaScript** e **CSS**.",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "nodemon --exec electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/eu-waliston/Barbearia-App.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "date-fns": "^4.1.0",
+    "electron": "^40.2.1",
+    "font-awesome": "^4.7.0",
+    "mongodb": "^7.1.0",
+    "nodemon": "^3.1.11"
+  },
+  "bugs": {
+    "url": "https://github.com/eu-waliston/Barbearia-App/issues"
+  },
+  "homepage": "https://github.com/eu-waliston/Barbearia-App#readme"
+}
