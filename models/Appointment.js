@@ -7,7 +7,7 @@ class Appointment {
         this.collection = db.collection('appointments');
     }
 
-    // Versão SIMPLIFICADA do validateAppointment para debug
+
     validateAppointment(appointment) {
         const errors = [];
 
@@ -120,7 +120,6 @@ class Appointment {
             throw error;
         }
     }
-
 
     // Busca agendamento por ID
     async findById(id) {
