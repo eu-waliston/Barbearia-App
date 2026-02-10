@@ -1,5 +1,9 @@
 # 💈 Barbearia App — Agendamentos Desktop com Electron
 
+
+https://github.com/user-attachments/assets/b9a0cfa4-629a-4c8d-9bdb-28c6c2c8b314
+
+
 > Um aplicativo desktop moderno, rápido e estiloso para **agendamento de barbearia**, feito com ❤️ usando **Electron**, **MongoDB**, **JavaScript** e **CSS**.
 
 Esse projeto nasce com uma proposta simples e visionária:  
