@@ -1,4 +1,6 @@
-const { ObjectId } = require('mongodb');
+const {
+    ObjectId
+} = require('mongodb');
 
 class Appointment {
     constructor(db) {
@@ -22,18 +24,18 @@ class Appointment {
             errors.push('Data e hora do agendamento são inválidas');
         }
 
-        if (!appointment.barberId || !ObjectId.isValid(appointment.barberId)) {
-            errors.push('Barbeiro inválido');
+        // Validação de barbeiro
+        if (!appointment.barberId) {
+            errors.push('Barbeiro é obrigatório');
+        } else if (appointment.barberId === '[object Object]') {
+            errors.push('ID do barbeiro está em formato inválido');
         }
 
-        if (!appointment.serviceId || !ObjectId.isValid(appointment.serviceId)) {
-            errors.push('Serviço inválido');
-        }
-
-        // Validação de formato de telefone (opcional, mas recomendado)
-        const phoneRegex = /^(\+\d{1,2}\s?)?(\(?\d{2,3}\)?[\s.-]?)?\d{4,5}[\s.-]?\d{4}$/;
-        if (appointment.clientPhone && !phoneRegex.test(appointment.clientPhone.replace(/\s/g, ''))) {
-            errors.push('Formato de telefone inválido');
+        // Validação de serviço
+        if (!appointment.serviceId) {
+            errors.push('Serviço é obrigatório');
+        } else if (appointment.serviceId === '[object Object]') {
+            errors.push('ID do serviço está em formato inválido');
         }
 
         return errors;
@@ -41,42 +43,67 @@ class Appointment {
 
     // Cria um novo agendamento
     async create(appointmentData) {
+        console.log('Dados recebidos no create:', appointmentData);
+
         // Validação
         const errors = this.validateAppointment(appointmentData);
         if (errors.length > 0) {
             throw new Error(`Erro de validação: ${errors.join(', ')}`);
         }
 
-        // Preparar dados
+        // Converter IDs para ObjectId
+        let barberId, serviceId;
+
+        try {
+            // Se o ID for '[object Object]', não podemos converter
+            if (appointmentData.barberId === '[object Object]') {
+                throw new Error('ID do barbeiro inválido');
+            }
+            barberId = new ObjectId(appointmentData.barberId);
+        } catch (error) {
+            console.error('Erro ao converter barberId:', error);
+            throw new Error('ID do barbeiro em formato inválido');
+        }
+
+        try {
+            // Se o ID for '[object Object]', não podemos converter
+            if (appointmentData.serviceId === '[object Object]') {
+                throw new Error('ID do serviço inválido');
+            }
+            serviceId = new ObjectId(appointmentData.serviceId);
+        } catch (error) {
+            console.error('Erro ao converter serviceId:', error);
+            throw new Error('ID do serviço em formato inválido');
+        }
+
+        // Preparar dados do agendamento
         const appointment = {
             clientName: appointmentData.clientName.trim(),
             clientPhone: appointmentData.clientPhone.trim(),
             date: new Date(appointmentData.date),
-            barberId: new ObjectId(appointmentData.barberId),
-            serviceId: new ObjectId(appointmentData.serviceId),
+            barberId: barberId,
+            serviceId: serviceId,
+            barberName: appointmentData.barberName || '',
+            serviceName: appointmentData.serviceName || '',
+            duration: appointmentData.duration || 30,
+            price: appointmentData.price || 0,
             status: appointmentData.status || 'agendado',
             notes: appointmentData.notes || '',
             createdAt: new Date(),
             updatedAt: new Date()
         };
 
-        // Verificar conflitos de horário
-        const isConflict = await this.checkTimeConflict(
-            appointment.barberId,
-            appointment.date,
-            appointmentData.duration || 30
-        );
-
-        if (isConflict) {
-            throw new Error('Conflito de horário: o barbeiro já possui um agendamento neste horário');
-        }
+        console.log('Appointment para inserção:', appointment);
 
         // Inserir no banco de dados
         const result = await this.collection.insertOne(appointment);
 
-        // Buscar dados completos com relacionamentos
-        return await this.findById(result.insertedId);
+        return {
+            ...appointment,
+            _id: result.insertedId
+        };
     }
+
 
     // Busca agendamento por ID
     async findById(id) {
@@ -84,7 +111,9 @@ class Appointment {
             throw new Error('ID inválido');
         }
 
-        const appointment = await this.collection.findOne({ _id: new ObjectId(id) });
+        const appointment = await this.collection.findOne({
+            _id: new ObjectId(id)
+        });
 
         if (!appointment) {
             throw new Error('Agendamento não encontrado');
@@ -117,7 +146,9 @@ class Appointment {
 
         const appointments = await this.collection
             .find(query)
-            .sort({ date: 1 })
+            .sort({
+                date: 1
+            })
             .toArray();
 
         return appointments;
@@ -135,15 +166,21 @@ class Appointment {
 
         return await this.collection
             .find(query)
-            .sort({ date: 1 })
+            .sort({
+                date: 1
+            })
             .toArray();
     }
 
     // Busca agendamentos por cliente
     async findByClient(phone, limit = 10) {
         return await this.collection
-            .find({ clientPhone: phone })
-            .sort({ date: -1 })
+            .find({
+                clientPhone: phone
+            })
+            .sort({
+                date: -1
+            })
             .limit(limit)
             .toArray();
     }
@@ -215,10 +252,11 @@ class Appointment {
         }
 
         // Atualizar no banco de dados
-        const result = await this.collection.updateOne(
-            { _id: new ObjectId(id) },
-            { $set: updates }
-        );
+        const result = await this.collection.updateOne({
+            _id: new ObjectId(id)
+        }, {
+            $set: updates
+        });
 
         if (result.modifiedCount === 0) {
             throw new Error('Nenhuma alteração realizada');
@@ -233,7 +271,9 @@ class Appointment {
             throw new Error('ID inválido');
         }
 
-        const result = await this.collection.deleteOne({ _id: new ObjectId(id) });
+        const result = await this.collection.deleteOne({
+            _id: new ObjectId(id)
+        });
 
         if (result.deletedCount === 0) {
             throw new Error('Agendamento não encontrado');
@@ -249,31 +289,46 @@ class Appointment {
 
         const query = {
             barberId: new ObjectId(barberId),
-            status: { $ne: 'cancelado' }, // Ignorar agendamentos cancelados
+            status: {
+                $ne: 'cancelado'
+            }, // Ignorar agendamentos cancelados
             $or: [
                 // Caso 1: Novo agendamento começa durante um agendamento existente
                 {
-                    date: { $lte: appointmentDate },
+                    date: {
+                        $lte: appointmentDate
+                    },
                     $expr: {
-                        $gte: [
-                            { $add: ["$date", { $multiply: ["$duration", 60000] }] },
+                        $gte: [{
+                                $add: ["$date", {
+                                    $multiply: ["$duration", 60000]
+                                }]
+                            },
                             appointmentDate
                         ]
                     }
                 },
                 // Caso 2: Novo agendamento termina durante um agendamento existente
                 {
-                    date: { $gte: appointmentDate, $lte: appointmentEnd },
+                    date: {
+                        $gte: appointmentDate,
+                        $lte: appointmentEnd
+                    },
                     $expr: {
                         $lte: ["$date", appointmentEnd]
                     }
                 },
                 // Caso 3: Novo agendamento envolve completamente um agendamento existente
                 {
-                    date: { $gte: appointmentDate },
+                    date: {
+                        $gte: appointmentDate
+                    },
                     $expr: {
-                        $lte: [
-                            { $add: ["$date", { $multiply: ["$duration", 60000] }] },
+                        $lte: [{
+                                $add: ["$date", {
+                                    $multiply: ["$duration", 60000]
+                                }]
+                            },
                             appointmentEnd
                         ]
                     }
@@ -283,7 +338,9 @@ class Appointment {
 
         // Excluir um agendamento específico (para updates)
         if (excludeAppointmentId) {
-            query._id = { $ne: new ObjectId(excludeAppointmentId) };
+            query._id = {
+                $ne: new ObjectId(excludeAppointmentId)
+            };
         }
 
         const conflict = await this.collection.findOne(query);
@@ -295,52 +352,79 @@ class Appointment {
         const start = new Date(startDate);
         const end = new Date(endDate);
 
-        const pipeline = [
-            {
+        const pipeline = [{
                 $match: {
-                    date: { $gte: start, $lte: end },
-                    status: { $ne: 'cancelado' }
+                    date: {
+                        $gte: start,
+                        $lte: end
+                    },
+                    status: {
+                        $ne: 'cancelado'
+                    }
                 }
             },
             {
                 $facet: {
                     // Contagem total de agendamentos
-                    totalAppointments: [
-                        { $count: "count" }
-                    ],
+                    totalAppointments: [{
+                        $count: "count"
+                    }],
                     // Agendamentos por status
-                    byStatus: [
-                        { $group: { _id: "$status", count: { $sum: 1 } } }
-                    ],
-                    // Agendamentos por barbeiro
-                    byBarber: [
-                        { $group: { _id: "$barberId", count: { $sum: 1 } } }
-                    ],
-                    // Agendamentos por serviço
-                    byService: [
-                        { $group: { _id: "$serviceId", count: { $sum: 1 } } }
-                    ],
-                    // Agendamentos por dia
-                    byDay: [
-                        {
-                            $group: {
-                                _id: {
-                                    $dateToString: { format: "%Y-%m-%d", date: "$date" }
-                                },
-                                count: { $sum: 1 }
-                            }
-                        },
-                        { $sort: { _id: 1 } }
-                    ],
-                    // Receita total (se houver preços)
-                    revenue: [
-                        {
-                            $group: {
-                                _id: null,
-                                total: { $sum: "$price" }
+                    byStatus: [{
+                        $group: {
+                            _id: "$status",
+                            count: {
+                                $sum: 1
                             }
                         }
-                    ]
+                    }],
+                    // Agendamentos por barbeiro
+                    byBarber: [{
+                        $group: {
+                            _id: "$barberId",
+                            count: {
+                                $sum: 1
+                            }
+                        }
+                    }],
+                    // Agendamentos por serviço
+                    byService: [{
+                        $group: {
+                            _id: "$serviceId",
+                            count: {
+                                $sum: 1
+                            }
+                        }
+                    }],
+                    // Agendamentos por dia
+                    byDay: [{
+                            $group: {
+                                _id: {
+                                    $dateToString: {
+                                        format: "%Y-%m-%d",
+                                        date: "$date"
+                                    }
+                                },
+                                count: {
+                                    $sum: 1
+                                }
+                            }
+                        },
+                        {
+                            $sort: {
+                                _id: 1
+                            }
+                        }
+                    ],
+                    // Receita total (se houver preços)
+                    revenue: [{
+                        $group: {
+                            _id: null,
+                            total: {
+                                $sum: "$price"
+                            }
+                        }
+                    }]
                 }
             }
         ];
@@ -355,10 +439,14 @@ class Appointment {
 
         return await this.collection
             .find({
-                date: { $gte: now },
+                date: {
+                    $gte: now
+                },
                 status: 'agendado'
             })
-            .sort({ date: 1 })
+            .sort({
+                date: 1
+            })
             .limit(limit)
             .toArray();
     }
@@ -369,10 +457,16 @@ class Appointment {
 
         return await this.collection
             .find({
-                date: { $lt: now },
-                status: { $in: ['concluido', 'cancelado'] }
+                date: {
+                    $lt: now
+                },
+                status: {
+                    $in: ['concluido', 'cancelado']
+                }
             })
-            .sort({ date: -1 })
+            .sort({
+                date: -1
+            })
             .limit(limit)
             .toArray();
     }
@@ -402,7 +496,7 @@ class Appointment {
     async getAvailableSlots(barberId, date, serviceDuration = 30) {
         const workHours = {
             start: 8, // 8:00
-            end: 20   // 20:00
+            end: 20 // 20:00
         };
 
         const selectedDate = new Date(date);
@@ -415,9 +509,16 @@ class Appointment {
         // Buscar agendamentos do barbeiro no dia
         const appointments = await this.collection.find({
             barberId: new ObjectId(barberId),
-            date: { $gte: startOfDay, $lte: endOfDay },
-            status: { $ne: 'cancelado' }
-        }).sort({ date: 1 }).toArray();
+            date: {
+                $gte: startOfDay,
+                $lte: endOfDay
+            },
+            status: {
+                $ne: 'cancelado'
+            }
+        }).sort({
+            date: 1
+        }).toArray();
 
         // Gerar slots de horário
         const slots = [];

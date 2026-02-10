@@ -100,32 +100,52 @@ async function loadBarbers() {
         const barberSelect = document.getElementById('barber');
         const barbersContainer = document.getElementById('barbers-container');
 
-        // Limpar selects
-        barberSelect.innerHTML = '<option value="">Selecione um barbeiro</option>';
-        barbersContainer.innerHTML = '';
+        // Limpar selects (mantendo primeira opção)
+        while (barberSelect.options.length > 1) {
+            barberSelect.remove(1);
+        }
 
-        // Preencher select
+        // Preencher select - garantir que value seja string
         barbers.forEach(barber => {
+            // Converter ObjectId para string de forma segura
+            let barberId;
+            if (barber._id) {
+                if (typeof barber._id === 'object' && barber._id.toString) {
+                    barberId = barber._id.toString(); // ObjectId para string
+                } else {
+                    barberId = String(barber._id); // Qualquer outro tipo para string
+                }
+            } else {
+                console.error('Barbeiro sem ID:', barber);
+                return; // Pular barbeiro sem ID
+            }
+
             const option = document.createElement('option');
-            option.value = barber._id;
+            option.value = barberId; // String
             option.textContent = `${barber.name} - ${barber.specialty}`;
+            option.setAttribute('data-id', barberId);
+
             barberSelect.appendChild(option);
         });
 
-        // Criar cards de barbeiros
-        barbers.forEach(barber => {
-            const card = document.createElement('div');
-            card.className = 'barber-card';
-            card.innerHTML = `
-                <div class="barber-avatar">
-                    <i class="fas fa-user-tie"></i>
-                </div>
-                <h3 class="barber-name">${barber.name}</h3>
-                <p class="barber-specialty">${barber.specialty}</p>
-                <span class="barber-status status-available">Disponível</span>
-            `;
-            barbersContainer.appendChild(card);
-        });
+        // Criar cards de barbeiros (se existir container)
+        if (barbersContainer) {
+            barbersContainer.innerHTML = '';
+            barbers.forEach(barber => {
+                const card = document.createElement('div');
+                card.className = 'barber-card';
+                card.innerHTML = `
+                    <div class="barber-avatar">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <h3 class="barber-name">${barber.name}</h3>
+                    <p class="barber-specialty">${barber.specialty}</p>
+                    <span class="barber-status status-available">Disponível</span>
+                `;
+                barbersContainer.appendChild(card);
+            });
+        }
+
     } catch (error) {
         console.error('Erro ao carregar barbeiros:', error);
         showNotification('Erro ao carregar barbeiros', 'error');
@@ -138,38 +158,68 @@ async function loadServices() {
         const serviceSelect = document.getElementById('service');
         const servicesTable = document.getElementById('services-table');
 
-        // Limpar selects
-        serviceSelect.innerHTML = '<option value="">Selecione um serviço</option>';
-        servicesTable.innerHTML = '';
+        // Limpar selects (mantendo primeira opção)
+        while (serviceSelect.options.length > 1) {
+            serviceSelect.remove(1);
+        }
 
-        // Preencher select
+        // Preencher select - garantir que value seja string
         services.forEach(service => {
+            // Converter ObjectId para string de forma segura
+            let serviceId;
+            if (service._id) {
+                if (typeof service._id === 'object' && service._id.toString) {
+                    serviceId = service._id.toString(); // ObjectId para string
+                } else {
+                    serviceId = String(service._id); // Qualquer outro tipo para string
+                }
+            } else {
+                console.error('Serviço sem ID:', service);
+                return; // Pular serviço sem ID
+            }
+
             const option = document.createElement('option');
-            option.value = service._id;
-            option.textContent = `${service.name} - R$ ${service.price.toFixed(2)}`;
+            option.value = serviceId; // String
+            option.textContent = `${service.name} - R$ ${service.price.toFixed(2)} (${service.duration}min)`;
+            option.setAttribute('data-id', serviceId);
+            option.setAttribute('data-duration', service.duration);
+            option.setAttribute('data-price', service.price);
+
             serviceSelect.appendChild(option);
         });
 
-        // Preencher tabela
-        services.forEach(service => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${service.name}</td>
-                <td>${service.duration} min</td>
-                <td>R$ ${service.price.toFixed(2)}</td>
-                <td>
-                    <div class="table-actions">
-                        <button class="table-btn edit" data-id="${service._id}">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="table-btn delete" data-id="${service._id}">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </td>
-            `;
-            servicesTable.appendChild(row);
-        });
+        // Preencher tabela (se existir)
+        if (servicesTable) {
+            servicesTable.innerHTML = '';
+            services.forEach(service => {
+                // Converter ObjectId para string
+                let serviceId;
+                if (service._id && typeof service._id === 'object' && service._id.toString) {
+                    serviceId = service._id.toString();
+                } else {
+                    serviceId = String(service._id || '');
+                }
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${service.name}</td>
+                    <td>${service.duration} min</td>
+                    <td>R$ ${service.price.toFixed(2)}</td>
+                    <td>
+                        <div class="table-actions">
+                            <button class="table-btn edit" data-id="${serviceId}">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="table-btn delete" data-id="${serviceId}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                servicesTable.appendChild(row);
+            });
+        }
+
     } catch (error) {
         console.error('Erro ao carregar serviços:', error);
         showNotification('Erro ao carregar serviços', 'error');
@@ -252,60 +302,6 @@ function generateTimeSlots() {
         }
     }
 }
-
-// Configuração do formulário de agendamento
-document.getElementById('appointment-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    // Obter valores do formulário
-    const clientName = document.getElementById('client-name').value;
-    const clientPhone = document.getElementById('client-phone').value;
-    const appointmentDate = document.getElementById('appointment-date').value;
-    const appointmentTime = document.getElementById('appointment-time').value;
-    const barberId = document.getElementById('barber').value;
-    const serviceId = document.getElementById('service').value;
-    const notes = document.getElementById('notes').value;
-
-    // Combinar data e hora
-    const dateTime = new Date(`${appointmentDate}T${appointmentTime}`);
-
-    // Obter nome do barbeiro e serviço
-    const barberName = document.getElementById('barber').selectedOptions[0].text.split(' - ')[0];
-    const serviceName = document.getElementById('service').selectedOptions[0].text.split(' - ')[0];
-
-    // Criar objeto de agendamento
-    const appointment = {
-        clientName,
-        clientPhone,
-        date: dateTime,
-        barberId,
-        barberName,
-        serviceId,
-        serviceName,
-        notes,
-        status: 'agendado'
-    };
-
-    try {
-        // Enviar para o banco de dados
-        const result = await window.electronAPI.createAppointment(appointment);
-
-        // Mostrar notificação de sucesso
-        showNotification('Agendamento criado com sucesso!', 'success');
-
-        // Recarregar agenda
-        await loadAppointments(appointmentDate);
-
-        // Resetar formulário
-        resetForm();
-
-        // Voltar para o dashboard
-        document.querySelector('.nav-item[data-view="dashboard"]').click();
-    } catch (error) {
-        console.error('Erro ao criar agendamento:', error);
-        showNotification('Erro ao criar agendamento', 'error');
-    }
-});
 
 function resetForm() {
     document.getElementById('appointment-form').reset();
@@ -395,7 +391,9 @@ function showAppointmentDetails(appointment) {
 
 async function updateAppointmentStatus(id, status) {
     try {
-        await window.electronAPI.updateAppointment(id, { status });
+        await window.electronAPI.updateAppointment(id, {
+            status
+        });
 
         // Recarregar agenda
         const selectedDate = document.getElementById('selected-date').value;
@@ -485,10 +483,204 @@ document.getElementById('today-btn').addEventListener('click', () => {
     document.getElementById('selected-date').value = today;
     loadAppointments(today);
 });
+// Adicionar evento para quando o serviço é selecionado
+document.getElementById('service').addEventListener('change', function () {
+    const selectedOption = this.options[this.selectedIndex];
+    if (selectedOption.value) {
+        const duration = selectedOption.getAttribute('data-duration');
+        const price = selectedOption.getAttribute('data-price');
+        console.log('Serviço selecionado - Duração:', duration, 'Preço:', price);
+    }
+});
 
+// Configuração do formulário de agendamento - VERSÃO FINAL CORRIGIDA
+document.getElementById('appointment-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    // Obter valores do formulário
+    const clientName = document.getElementById('client-name').value;
+    const clientPhone = document.getElementById('client-phone').value;
+    const appointmentDate = document.getElementById('appointment-date').value;
+    const appointmentTime = document.getElementById('appointment-time').value;
+    const barberSelect = document.getElementById('barber');
+    const serviceSelect = document.getElementById('service');
+    const notes = document.getElementById('notes').value;
+
+    // Validar selects
+    if (barberSelect.value === '' || serviceSelect.value === '') {
+        showNotification('Por favor, selecione um barbeiro e um serviço', 'error');
+        return;
+    }
+
+    // Obter IDs como STRINGS
+    const barberId = barberSelect.value;
+    const serviceId = serviceSelect.value;
+
+    // DEBUG: Verificar os IDs
+    console.log('IDs dos selects:', {
+        barberId,
+        serviceId,
+        barberIdType: typeof barberId,
+        serviceIdType: typeof serviceId
+    });
+
+    // Obter o texto das opções selecionadas
+    const barberText = barberSelect.options[barberSelect.selectedIndex].text;
+    const serviceText = serviceSelect.options[serviceSelect.selectedIndex].text;
+
+    // Extrair nomes
+    const barberName = barberText.split(' - ')[0];
+    const serviceName = serviceText.split(' - ')[0];
+
+    // Combinar data e hora
+    const dateTime = new Date(`${appointmentDate}T${appointmentTime}`);
+
+    // Obter duração e preço dos atributos data-*
+    let duration = 30;
+    let price = 0;
+
+    try {
+        const durationAttr = serviceSelect.options[serviceSelect.selectedIndex].getAttribute('data-duration');
+        const priceAttr = serviceSelect.options[serviceSelect.selectedIndex].getAttribute('data-price');
+
+        if (durationAttr) duration = parseInt(durationAttr);
+        if (priceAttr) price = parseFloat(priceAttr);
+    } catch (error) {
+        console.warn('Não foi possível obter atributos do serviço:', error);
+    }
+
+    // Criar objeto de agendamento com IDs como STRINGS
+    const appointment = {
+        clientName,
+        clientPhone,
+        date: dateTime,
+        barberId: barberId, // Já é string
+        barberName,
+        serviceId: serviceId, // Já é string
+        serviceName,
+        duration,
+        price,
+        notes,
+        status: 'agendado'
+    };
+
+    console.log('Enviando appointment:', appointment);
+
+    try {
+        // Enviar para o banco de dados
+        const result = await window.electronAPI.createAppointment(appointment);
+
+        // Mostrar notificação de sucesso
+        showNotification('Agendamento criado com sucesso!', 'success');
+
+        // Recarregar agenda
+        const selectedDate = document.getElementById('selected-date').value;
+        await loadAppointments(selectedDate);
+
+        // Resetar formulário
+        resetForm();
+
+        // Voltar para o dashboard
+        document.querySelector('.nav-item[data-view="dashboard"]').click();
+
+    } catch (error) {
+        console.error('Erro ao criar agendamento:', error);
+        showNotification(`Erro ao criar agendamento: ${error.message}`, 'error');
+    }
+});
+
+// DEBUG: Adicione esta função para verificar os dados
+async function checkFormData() {
+    console.log('=== CHECK FORM DATA ===');
+
+    const barberSelect = document.getElementById('barber');
+    const serviceSelect = document.getElementById('service');
+
+    console.log('Barber select options:', barberSelect.options.length);
+    console.log('Service select options:', serviceSelect.options.length);
+
+    // Verificar cada opção
+    for (let i = 0; i < barberSelect.options.length; i++) {
+        const option = barberSelect.options[i];
+        console.log(`Barber option ${i}: value="${option.value}", text="${option.text}"`);
+    }
+
+    for (let i = 0; i < serviceSelect.options.length; i++) {
+        const option = serviceSelect.options[i];
+        console.log(`Service option ${i}: value="${option.value}", text="${option.text}"`);
+    }
+
+    // Verificar os dados no banco
+    try {
+        const barbers = await window.electronAPI.getBarbers();
+        console.log('Barbeiros da API:', barbers);
+
+        const services = await window.electronAPI.getServices();
+        console.log('Serviços da API:', services);
+    } catch (error) {
+        console.error('Erro ao buscar dados:', error);
+    }
+}
 // Inicialização dos dados
 async function loadInitialData() {
     await loadBarbers();
     await loadServices();
     await loadAppointments(new Date().toISOString().split('T')[0]);
 }
+// Função utilitária para converter IDs
+function convertToObjectIdString(id) {
+    if (!id) return '';
+
+    // Se já for string, retornar
+    if (typeof id === 'string') {
+        // Verificar se é "[object Object]"
+        if (id === '[object Object]') {
+            console.error('ID inválido encontrado: [object Object]');
+            return '';
+        }
+        return id;
+    }
+
+    // Se for objeto com método toString()
+    if (typeof id === 'object' && id.toString) {
+        const str = id.toString();
+        if (str === '[object Object]') {
+            console.error('Objeto não-ObjectId convertido para string:', id);
+            return '';
+        }
+        return str;
+    }
+
+    // Qualquer outro tipo
+    return String(id);
+}
+
+// Função utilitária para converter IDs
+function convertToObjectIdString(id) {
+    if (!id) return '';
+
+    // Se já for string, retornar
+    if (typeof id === 'string') {
+        // Verificar se é "[object Object]"
+        if (id === '[object Object]') {
+            console.error('ID inválido encontrado: [object Object]');
+            return '';
+        }
+        return id;
+    }
+
+    // Se for objeto com método toString()
+    if (typeof id === 'object' && id.toString) {
+        const str = id.toString();
+        if (str === '[object Object]') {
+            console.error('Objeto não-ObjectId convertido para string:', id);
+            return '';
+        }
+        return str;
+    }
+
+    // Qualquer outro tipo
+    return String(id);
+}
+// Chamar após carregar a página
+setTimeout(checkFormData, 2000);
